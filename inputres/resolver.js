@@ -5,8 +5,9 @@ var round = 5; // rounded rectangle's corner
 var Width = 400;
 var Height = 400;
 
+var colorArray = ["red", "green" "blue", "black"];
 function getColor( i ){
-	return ["red", "green" "blue", "black"][i];
+	return colorArray[i];
 }
 
 function Literal( color, polarity, innerRadius, outerRadius, x, y ){
