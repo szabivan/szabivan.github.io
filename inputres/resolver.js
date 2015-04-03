@@ -10,16 +10,15 @@ function getColor( i ){
 	return colorArray[i];
 }
 
-function Literal( color, polarity, innerRadius, outerRadius, x, y ){
-  this.color = color;
-  this.shape = new createjs.Shape();
+function getLiteral( color, polarity, radius, x, y ){
+  var shape = new createjs.Shape();
+  shape.graphics.beginFill( color ).drawCircle( 0, 0, radius ).beginFill( "white" ).drawRoundRect( -radius*3/4, -radius*1/4, radius*3/2, radius*1/2, 3 );
   if( polarity > 0 ){
-    this.shape.graphics.beginFill( color ).drawCircle( 0, 0, outerRadius ).beginFill( "white" ).drawCircle( 0, 0, innerRadius );
-  }else{
-    this.shape.graphics.beginFill( color ).drawCircle( 0, 0, innerRadius + 1 );
+    shape.graphics.drawRoundRect(-radius*1/4,-radius*3/4, radius*1/2,radius*3/2,3);
   }
-  this.shape.x = x;
-  this.shape.y = y;
+  shape.x = x;
+  shape.y = y;
+  return shape;
 }
 
 function Clause( arr, radius ){
@@ -31,16 +30,21 @@ function Clause( arr, radius ){
   this.arr = arr.slice();
   var tmpArr = [];
   for( var i = 0; i < arr.length; i++ ) if( arr[i] ) { this.size++; tmpArr.push( (i+1)*arr[i] ); }
-  if( this.size == 1 ){
-    this.container.addChild( new Literal( getColor( Math.abs(tmpArr[0]) - 1 ), tmpArr[0], radius*1/2, radius*3/4, 0, radius / 4 ).shape );
-  }else if( this.size == 0 ){
-  }else{
-	  //TODO: nagyobbakat is kezelni
-  }  
+  switch( this.size ){
+	case 1: this.container.addChild( getLiteral( getColor( Math.abs(tmpArr[0]) - 1 ), tmpArr[0], radius*1/2, radius*3/4, 0, radius / 4 ) );
+    case 0: break;
+	case 2:
+	  for( var i = 0; i < 2; i++ ){
+		  this.container.addChild( getLiteral( getColor( Math.abs(tmpArr[i])-1 ), tmpArr[i], radius/3, radius/2, 0, radius/2 - i*radius ) );
+	  }
+	  break;
+	
+  }
 }
 Clause.prototype.addToStage = function(){
 	stage.addChild( this.container );
 }
+Clause.prototype.setPosition = function( x, y ){ this.container.x = x; this.container.y = y; }
 
 function createBorders(){
 	var shape = new createjs.Shape();
@@ -53,6 +57,7 @@ function init(){
 	createBorders();
 	
     var c = new Clause( [0,1,0], 30 );
+	c.setPosition( 200,200 );
 	c.addToStage();
 	
 	stage.update();
