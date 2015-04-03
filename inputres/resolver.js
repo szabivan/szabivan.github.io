@@ -32,7 +32,7 @@ function Clause( arr, radius ){
   var tmpArr = [];
   for( var i = 0; i < arr.length; i++ ) if( arr[i] ) { this.size++; tmpArr.push( (i+1)*arr[i] ); }
   if( this.size == 1 ){
-    this.container.addChild( new Literal( getColor( Math.abs(tmpArr[0]) - 1 ), tmpArr[0], radius*1/2, radius*3/4, 0, radius / 4 ) );
+    this.container.addChild( new Literal( getColor( Math.abs(tmpArr[0]) - 1 ), tmpArr[0], radius*1/2, radius*3/4, 0, radius / 4 ).shape );
   }else if( this.size == 0 ){
   }else{
 	  //TODO: nagyobbakat is kezelni
