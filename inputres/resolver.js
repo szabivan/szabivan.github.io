@@ -31,11 +31,11 @@ function Clause( arr, radius ){
   var tmpArr = [];
   for( var i = 0; i < arr.length; i++ ) if( arr[i] ) { this.size++; tmpArr.push( (i+1)*arr[i] ); }
   switch( this.size ){
-	case 1: this.container.addChild( getLiteral( getColor( Math.abs(tmpArr[0]) - 1 ), tmpArr[0], radius*1/2, radius*3/4, 0, radius / 4 ) );
+	case 1: this.container.addChild( getLiteral( getColor( Math.abs(tmpArr[0]) - 1 ), tmpArr[0], radius*3/4, 0, radius / 4 ) );
     case 0: break;
 	case 2:
 	  for( var i = 0; i < 2; i++ ){
-		  this.container.addChild( getLiteral( getColor( Math.abs(tmpArr[i])-1 ), tmpArr[i], radius/3, radius/2, 0, radius/2 - i*radius ) );
+		  this.container.addChild( getLiteral( getColor( Math.abs(tmpArr[i])-1 ), tmpArr[i], radius/2, 0, radius/2 - i*radius ) );
 	  }
 	  break;
 	
@@ -58,6 +58,10 @@ function init(){
 	
     var c = new Clause( [0,1,0], 30 );
 	c.setPosition( 200,200 );
+	c.addToStage();
+	
+	c = new Clause([1,0,-1],30);
+	c.setPosition( 200,300 );
 	c.addToStage();
 	
 	stage.update();
