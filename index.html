@@ -1,0 +1,495 @@
+<html>
+<head>
+<script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script>
+<script>
+
+var literalColors = [
+  "aqua",
+  "lime",
+  "red",
+  "brown",
+  "teal",
+  "darkmagenta",
+  "silver",
+  "black"
+];
+var Width = 400;
+var Height = 400;
+var MenuHeight = 50;
+var ClauseHeight = 40;
+var LiteralHeight = ClauseHeight / 2;
+var stage;
+
+var KEYCODE_SPACE = 32;
+var KEYCODE_LEFT = 37;
+var KEYCODE_RIGHT = 39;
+
+var sigma = [];
+var mob = null;
+var shot = null;
+var shotX0, shotY0, shotX1, shotY1, shotFrames, shotFramesLeft, firing;
+var variables = 5;
+var steps = 0;
+var stepLimits = 10;
+
+var gameStatus = 0;
+
+function Literal( color, polarity ){
+  this.color = color;
+  this.shape = new createjs.Shape();
+  if( polarity > 0 ){
+    this.shape.graphics.beginFill(color).drawCircle(0,0,LiteralHeight/3);
+  }else{
+    this.shape.graphics.beginFill(color).drawCircle(0,0,LiteralHeight/2).beginFill("white").drawCircle(0,0,LiteralHeight/3);
+  }
+  this.shape.x = 0;
+  this.shape.y = 0;
+}
+Literal.prototype.addToStage = function(){
+  stage.addChild( this.shape );
+}
+
+function gameOver() {
+  gameState = 0;
+  addCenteredText("You Lost - enemy grew out of the box","red");
+}
+function gameWon() {
+  gameState = 0;
+  addCenteredText("You Won!","green");
+}
+function parallelResolve(){
+  gameState = 0;
+  addCenteredText("You Lost - shot enemy with at least TWO clashing colors","red");  
+}
+function addCenteredText( t, c ){
+  var text = new createjs.Text(t,null,c);
+  text.textAlign = "center";
+  text.x = Width / 2;
+  text.y = Height / 2;
+  stage.addChild( text );
+}
+
+function Clause( arr ){
+  this.arr = [];
+  this.N = arr.length;
+  for( var i = 0; i < arr.length; i++ ) this.arr.push( arr[i] );
+  this.initShapes();
+  this.localAlpha = Math.floor( Math.random() * 360 );
+  this.localSpeed = 3/4 + Math.random() / 2;
+  if( Math.random() > 0.5 ) this.localSpeed = -this.localSpeed;
+}
+Clause.prototype.isEmpty = function(){
+  for( var i = 0; i < this.arr.length; i++ ) if ( this.arr[i] != 0 ) return 0;
+  return 1;
+}
+Clause.prototype.initShapes = function(){
+  this.container = new createjs.Container();
+  this.rect = new createjs.Shape();
+  this.rect.graphics.beginStroke("black").drawCircle( 0, 0, ClauseHeight/2 );
+  this.container.addChild( this.rect );
+  this.initLiterals();
+}
+Clause.prototype.initLiterals = function(){
+  this.container.removeAllChildren();
+  this.container.addChild( this.rect );
+  var size = 0;
+  for( var i = 0; i < this.N; i++ ){
+    if( this.arr[i] != 0 ) size++;
+  }
+  if( size === 0 ) return;
+  if( size == 1 ){
+    var j = 0;
+	while( this.arr[j] === 0 ) j++;
+	var p = new Literal( literalColors[j], this.arr[j] );
+	p.shape.x = 0;
+	p.shape.y = LiteralHeight / 3;
+	p.shape.scaleX = p.shape.scaleY = 4/3;
+	this.container.addChild( p.shape );
+  } else {
+    var theta = 2*Math.PI / size;
+    var j = 0;
+    for( var i = 0; i < this.N; i++ ){
+      if( this.arr[i] != 0 ){
+	    var p = new Literal( literalColors[i], this.arr[i] );
+	    p.shape.x = (ClauseHeight-LiteralHeight)/2 * Math.sin( theta * j );
+	    p.shape.y = (ClauseHeight-LiteralHeight)/2 * Math.cos( theta * j );
+		if( size > 3 ){
+		  var newRadius = Math.sin( Math.PI / size )*(ClauseHeight-LiteralHeight);
+		  p.shape.scaleX = p.shape.scaleY = newRadius / LiteralHeight;
+		}
+	    this.container.addChild( p.shape );
+	    j++;
+	  }
+    }
+  }
+}
+Clause.prototype.setLiteral = function( index, value ){
+  this.arr[ index ] = value;  
+  this.initLiterals();
+}
+Clause.prototype.addToStage = function( ){
+  stage.addChild( this.container );
+}
+Clause.prototype.removeFromStage = function() {
+  stage.removeChild( this.container );
+}
+Clause.prototype.setPosition = function( x, y ){
+  this.container.x = x;
+  this.container.y = y;
+}
+Clause.prototype.tickRotation = function( ){
+  this.container.rotation += this.localSpeed * degreesPerTick;
+  if( this.container.rotation < 0 ){
+    this.container.rotation += 360;
+  }else if( this.container.rotation > 360 ){
+    this.container.rotation -= 360;
+  }
+}
+Clause.prototype.setScale = function( scale ){
+  var factor = Height / ClauseHeight;
+  var root = Math.pow( factor, scale/stepLimits );
+  this.container.scaleX = this.container.scaleY = root;
+}
+
+function resolve( c, d ){
+  var conflict = -1;
+  var ret = [];
+  for( var i = 0; i < c.N; i++ ){
+    if( c.arr[i] == 0){
+	  ret[i] = d.arr[i];
+	}else if(( d.arr[i] == 0 ) || (d.arr[i] == c.arr[i] )){
+	  ret[i] = c.arr[i];
+	}else{
+      if( conflict == -1 ){
+	    conflict = i;
+		ret[i] = 0;
+	  } else {
+	    return "BOOM";
+	  }
+	}
+  }
+  return new Clause( ret );
+}
+
+var activeMenu;
+var activeMenuIndex = 0;
+var menuBox;
+function drawMenu( stage ){
+  stage.removeChild( menuBox );
+  stage.removeChild( activeMenu );
+  menuBox = new createjs.Shape();
+  menuBox.graphics.beginStroke("black").drawRoundRect(0,0,Width,Height,5);
+  
+  for( var i = 0; i < sigma.length; i++ ){
+    var coords = getPos( i );
+    menuBox.graphics.drawRoundRect( coords.x, coords.y, MenuHeight, MenuHeight, 5 );
+  }
+  
+  activeMenu = new createjs.Shape();
+  activeMenu.graphics.beginFill("lightgreen").drawRoundRect(0,0,MenuHeight,MenuHeight,5);
+  var coords = getPos( 0 );
+  activeMenu.x = coords.x;
+  activeMenu.y = coords.y;
+
+  stage.addChild( activeMenu );
+  stage.addChild( menuBox );
+  stage.setChildIndex( activeMenu, 0 );
+}
+function setActiveMenuIndex( i ){  
+  while( i < 0 ) i += sigma.length;
+  i = i % sigma.length;
+  activeMenuIndex = i;
+  
+  var coords = getPos( i );
+  activeMenu.x = coords.x;
+  activeMenu.y = coords.y;
+  stage.update();
+}
+var globalAlpha = 0;
+var degreesPerTick = 10;
+
+function handleTick( event ){
+  if( mob != null ){
+    mob.tickRotation( );
+  }
+  for( var i = 0; i < sigma.length; i++){
+    sigma[i].tickRotation( );	
+  }
+  if( firing != 0 ){
+    shot.setPosition(
+	  shotX0 + (shotX1-shotX0)*(shotFrames - shotFramesLeft) / shotFrames,
+	  shotY0 + (shotY1-shotY0)*(shotFrames - shotFramesLeft) / shotFrames
+	)
+	shotFramesLeft--;
+	if( shotFramesLeft < 0 ){
+	  firing = 0;
+	  stage.removeChild( shot.container );
+	  
+	  var newMob = resolve( mob, shot );
+	  shot = null;
+	  if( newMob === null ){
+	  }else if( newMob === "BOOM"){
+	    parallelResolve();
+		stage.update();
+		return;
+	  }else{
+	    setMob( newMob );
+	  }
+	  if( mob.isEmpty() ){
+        mob.setScale( steps );	  
+	    gameWon();
+	  }else{
+		steps++;
+	    mob.setScale( steps );	  
+	    if( steps > stepLimits ){
+	      gameOver();
+	    }
+	  }
+	}
+  }
+  stage.update();
+}
+
+function addSigma( c ){
+  sigma.push( c );
+  c.addToStage();
+  // should recalculate all the positions of sigma
+  for( var i = 0; i < sigma.length; i++ ){
+    var coord = getPos( i );
+	sigma[i].setPosition( coord.x + MenuHeight / 2, coord.y + MenuHeight / 2 );
+  }
+}
+function setMob( c ){
+  if( mob != null ){
+    mob.removeFromStage();
+  }
+  mob = c;
+  c.setPosition( Width / 2, Height / 2 );
+  c.addToStage();
+}
+var firing = 0;
+function fire(){
+  firing = 1;
+  shot = new Clause( sigma[ activeMenuIndex ].arr );
+  var coord = getPos( activeMenuIndex );
+  shotX0 = coord.x + MenuHeight / 2;
+  shotY0 = coord.y + MenuHeight / 2;
+  shot.setPosition( shotX0, shotY0 );  
+  shotX1 = Width / 2;
+  shotY1 = Height / 2;
+  shotFrames = 5;
+  shotFramesLeft = 5;
+  shot.addToStage();
+}
+function handleKeyDown(e) {
+    switch (e.keyCode) {
+        case KEYCODE_SPACE:
+		    if( gameState == 1 && firing === 0 ) fire();
+            break;
+        case KEYCODE_LEFT:
+			if( gameState == 1 ) setActiveMenuIndex( activeMenuIndex - 1 );
+            break;
+        case KEYCODE_RIGHT:
+			if( gameState == 1 ) setActiveMenuIndex( activeMenuIndex + 1 );
+            break;
+		case 'R':
+		case 82:
+		case 114:
+			restartLevel();
+			break;
+		case 'N':
+		case 78:
+		case 110:
+			generate( variables );
+			break;
+		case 'A':
+		case 65:
+		case 97:
+			if( variables < literalColors.length ){
+			  variables++;
+			  stepLimits+=2;
+			  generate( variables );
+			}
+			break;
+		case 'S':
+		case 83:
+		case 115:
+			if( variables > 1 ){
+			  variables--;
+			  stepLimits -= 2;
+			  generate( variables );
+			}
+			break;
+		case 'H':
+		case 72:
+		case 104:
+			gameState = 0;
+			displayHelp();
+			break;
+    }
+}
+
+function zero( n ){
+  var ret = [];
+  for( var i = 0; i < n; i++ ) ret[i] = 0;
+  return ret;
+}
+function unit( n, i ){
+  var ret = zero( n );
+  ret[i] = 1;
+  return ret;
+}
+
+var origTask = [];
+
+function generate( n ){
+  var them = [];
+  them.push( zero(n) );
+  for( var i = 0; i < n; i++ ){
+    them.push( unit(n,i) );
+	var count = 0;
+	while( count === 0 ){
+	  for( var j = 0; j <= i; j++ ){
+	    if( Math.random() > 0.5 ){
+		  count++;
+		  them[j][i] = -1;
+		}
+	  }
+	}
+  }
+  // Horn-renaming
+  for( var i = 0; i < n; i++ ){
+    if( Math.random() > 0.5 ){
+	  for( var j = 0; j < them.length; j++ ){
+	    them[j][i] = -them[j][i];
+	  }
+	}
+  }
+  // shuffle sigma
+  for( var i = 1; i < n; i++ ){
+    var j = i + Math.floor( Math.random() * (n + 1 - i ) );
+	if( j != i ){
+	  var a = them[i]; them[i] = them[j]; them[j] = a;
+	}
+  }
+  origTask = [ them[0] ];
+  for( var i = 1; i <= n; i++ ){
+	origTask.push( them[i] );
+  }
+  restartLevel();
+}
+
+function removeSigma(){
+  for( var i = 0; i < sigma.length; i++ ){
+    if( sigma[i] != null ) {
+	  sigma[i].removeFromStage();
+	}
+  }
+  sigma = [];
+}
+
+function restartLevel() {
+  removeSigma();
+  stage.removeAllChildren();
+  setMob( new Clause( origTask[0] ));
+  for( var i = 1; i < origTask.length; i++ ){
+	addSigma( new Clause( origTask[i] ));
+  }
+  steps = 0;
+  drawMenu( stage );
+  setActiveMenuIndex( 0 );
+  gameState = 1;
+}
+function getPos( menuIndex ){
+  var maxTilesPerRow = Math.floor( Width / MenuHeight );
+  var totalRows = Math.ceil( sigma.length / maxTilesPerRow );
+  var currentRow = Math.floor( menuIndex / maxTilesPerRow );
+  var cellsInRow = (currentRow == totalRows - 1) ? ((sigma.length % maxTilesPerRow == 0)?maxTilesPerRow:sigma.length%maxTilesPerRow): maxTilesPerRow;
+  
+  var ret = {
+    x: (Width - cellsInRow * MenuHeight)/2 + (menuIndex % maxTilesPerRow)*MenuHeight,
+	y: Height + MenuHeight * currentRow
+  };
+  return ret;
+}
+
+function addEquation( sample1, sample2, sample3, i, t ){
+  var y = MenuHeight + (2*i)*ClauseHeight;
+  sample1.setPosition( MenuHeight + ClauseHeight, y );
+  sample2.setPosition( MenuHeight + 3 * ClauseHeight, y );
+  sample1.addToStage();
+  sample2.addToStage();
+  if( sample3 != null ){
+	sample3.setPosition( MenuHeight + 5 * ClauseHeight, y );
+    sample3.addToStage();
+  }else{
+    var text = new createjs.Text("Game Over",null,"red");
+	text.textAlign = "center";
+	text.x = MenuHeight + 5 * ClauseHeight;
+	text.y = y;
+	stage.addChild( text );
+  }
+  var text = new createjs.Text("+","36px");
+  text.textAlign = "center";
+  text.x = MenuHeight + 2*ClauseHeight;
+  text.y = y;
+  stage.addChild( text );
+  text = new createjs.Text("=");
+  text.textAlign = "center";
+  text.x = MenuHeight + 4*ClauseHeight;
+  text.y = y;
+  stage.addChild( text );
+  text = new createjs.Text(t);
+  text.x = MenuHeight + ClauseHeight/2;
+  text.y = y + ClauseHeight;
+  stage.addChild( text );
+}
+
+function displayHelp(){
+  var helpbox = new createjs.Shape();
+  helpbox.graphics.beginFill("azure").drawRoundRect(MenuHeight/2,MenuHeight/2,Width-MenuHeight,Height-MenuHeight,5).beginStroke("black").drawRoundRect(MenuHeight/2,MenuHeight/2,Width-MenuHeight,Height-MenuHeight,5);
+  stage.addChild( helpbox );
+  addEquation( new Clause([1,-1,0]), new Clause([1,0,1]), new Clause([1,-1,1]), 0, "In general, shot particles unite with particles of the target.");
+  addEquation( new Clause([1,-1,0]), new Clause([1,1,-1]), new Clause([1,0,-1]), 1, "Two different shapes of the same color cancel out each other.");
+  addEquation( new Clause([1,-1,0]), new Clause([-1,1,1]), null, 2, "More clashing color pairs result in immediate loss of the game.");
+  addEquation( new Clause([0,-1,0]), new Clause([0,1,0]), new Clause([0,0,0]), 3, "The aim is to empty the target before it grows too large.");
+  var text = new createjs.Text("You Win","36px","Green");
+  text.textAlign = "center";
+  text.x = MenuHeight + 5*ClauseHeight;
+  text.y = MenuHeight + 6*ClauseHeight;
+  stage.addChild( text );
+  
+  stage.update();
+}
+
+
+function init(){
+  stage = new createjs.Stage("demoCanvas");
+  
+  createjs.Ticker.framerate = 30;
+  createjs.Ticker.addEventListener("tick",handleTick);
+  
+  generate( variables );
+
+  setActiveMenuIndex( 0 );
+  
+  stage.update();
+  document.onkeydown = handleKeyDown;
+}
+</script>
+</head>
+<body onload="init();">
+
+<center>
+choose your clause: LEFT/RIGHT<br/>
+resolve the mob: SPACE<br/>
+restart level: R<br/>
+random level: N<br/>
+more colors: A<br/>
+less colors: S<br/>
+display help: H<br/>
+<canvas id="demoCanvas" width="400" height="500" />
+</center>
+
+</body>
+</html>
