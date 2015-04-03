@@ -359,7 +359,7 @@ function generate( n ){
   }
   // only one unit clause
   for( var i = 1; i < n; i++ ){
-    them[i][ Math.random( n - i ) + i] = -1;
+    them[i][ Math.random( n - i ) + i + 1] = -1;
  }
   // Horn-renaming
   for( var i = 0; i < n; i++ ){
