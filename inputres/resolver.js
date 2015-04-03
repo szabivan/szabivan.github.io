@@ -16,7 +16,7 @@ function init(){
 	
 	var l = new Literal( "green", 1, 10, 20 );
 	l.shape.x = l.shape.y = 100;
-	stage.addChild( l );
+	stage.addChild( l.shape );
 	
 	stage.update();
 }
