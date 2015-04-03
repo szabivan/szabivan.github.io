@@ -44,7 +44,7 @@ Clause.prototype.addToStage = function(){
 
 function createBorders(){
 	var shape = new createjs.Shape();
-	shape.graphics.beginStroke("black").drawRoundedRectangle(0,0,Width,Height,round);
+	shape.graphics.beginStroke("black").drawRoundRect(0,0,Width,Height,round);
 	stage.addChild( shape );
 }
 
