@@ -6,6 +6,7 @@ var Width = 400;		// width of the game window
 var Height = 400;		// height of the game window
 var clauseSize = 80;	// default diameter of a clause
 var buttonSize = 100;	// size of a button
+var activeMenuColor = "lightgreen";
 
 /** GLOBAL VARIABLES **/
 var mob;			// current target clause in the center
@@ -31,6 +32,15 @@ function getLiteral( color, polarity, radius, x, y ){
   return shape;
 }
 
+function getButtonGraphics( isActive ){
+	var g = new createjs.Graphics();
+	if( isActive ){
+	  g.beginFill(activeMenuColor).drawRoundRect( -buttonSize/2, -buttonSize/2, buttonSize, buttonSize, round );		
+	}
+	g.beginStroke("black").drawRoundRect( -buttonSize/2, -buttonSize/2, buttonSize, buttonSize, round );
+	return g;
+}
+
 function Clause( arr, radius, framed ){
   this.size = 0;
   this.container = new createjs.Container();
@@ -39,7 +49,7 @@ function Clause( arr, radius, framed ){
   this.container.addChild( shape );
   if( framed ){
 	  this.frame = new createjs.Shape();
-	  this.frame.graphics.beginStroke("black").drawRoundRect( -buttonSize/2, -buttonSize/2, buttonSize, buttonSize, round );
+	  this.frame.graphics = getButtonGraphics( 0 );
   }
   this.arr = arr.slice();
   var tmpArr = [];
@@ -78,8 +88,9 @@ Clause.prototype.addToStage = function(){
 	if( this.frame ) stage.addChild( this.frame );
 	stage.addChild( this.container );
 }
-Clause.prototype.setPosition = function( x, y ){ this.container.x = x; this.container.y = y; }
+Clause.prototype.setPosition = function( x, y ){ this.container.x = x; this.container.y = y; if( this.frame ) {this.frame.x = x; this.frame.y = y ;} }
 Clause.prototype.setRotation = function( theta ){ this.container.rotation = theta; }
+Clause.prototype.setActive = function( isActive ){ if( this.frame ){ this.frame.graphics = getButtonGraphics( isActive ); } }
 
 function createBorders(){
 	var shape = new createjs.Shape();
@@ -100,12 +111,13 @@ function init(){
 	c.setRotation(30);
 	c.addToStage();
 	
-    var c = new Clause( [1,1,-1], 25 );
+    var c = new Clause( [1,1,-1], 25, 1 );
 	c.setPosition( 200,100 );
 	c.addToStage();
 
-    var c = new Clause( [1,-1,-1,1], 25 );
+    var c = new Clause( [1,-1,-1,1], 25, 1 );
 	c.setPosition( 100,150 );
+	c.setActive( 1 );
 	c.addToStage();
 
     var c = new Clause( [-1,1,-1,-1,1], 25 );
