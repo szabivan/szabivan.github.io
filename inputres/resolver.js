@@ -1,9 +1,19 @@
 var stage;
 
 /** MAGIC CONSTANTS **/
-var round = 5; // rounded rectangle's corner
-var Width = 400;
-var Height = 400;
+var round = 5; 			// rounded rectangles' corner
+var Width = 400;		// width of the game window
+var Height = 400;		// height of the game window
+var clauseSize = 80;	// default diameter of a clause
+var buttonSize = 100;	// size of a button
+
+/** GLOBAL VARIABLES **/
+var mob;			// current target clause in the center
+var origMob;		// original target clause, saved for restart
+var sigma = [];		// weapon clauses
+var shot;			// the shot clause, if exists (firing == 1)
+var firing;			// 1 during firing, 0 otherwise
+
 
 var colorArray = ["red", "green", "blue", "black","cyan","magenta","silver"];
 function getColor( i ){
@@ -21,12 +31,16 @@ function getLiteral( color, polarity, radius, x, y ){
   return shape;
 }
 
-function Clause( arr, radius ){
+function Clause( arr, radius, framed ){
   this.size = 0;
   this.container = new createjs.Container();
-  this.shape = new createjs.Shape();
-  this.shape.graphics.beginStroke("black").drawCircle( 0, 0, radius );
-  this.container.addChild( this.shape );
+  var shape = new createjs.Shape();
+  shape.graphics.beginStroke("black").drawCircle( 0, 0, radius );
+  this.container.addChild( shape );
+  if( framed ){
+	  this.frame = new createjs.Shape();
+	  this.frame.graphics.beginStroke("black").drawRoundRect( -buttonSize/2, -buttonSize/2, buttonSize, buttonSize, round );
+  }
   this.arr = arr.slice();
   var tmpArr = [];
   for( var i = 0; i < arr.length; i++ ) if( arr[i] ) { this.size++; tmpArr.push( (i+1)*arr[i] ); }
@@ -61,6 +75,7 @@ function Clause( arr, radius ){
   }
 }
 Clause.prototype.addToStage = function(){
+	if( this.frame ) stage.addChild( this.frame );
 	stage.addChild( this.container );
 }
 Clause.prototype.setPosition = function( x, y ){ this.container.x = x; this.container.y = y; }
@@ -76,11 +91,11 @@ function init(){
 	stage = new createjs.Stage("gameCanvas");
 	createBorders();
 	
-    var c = new Clause( [0,1,0], 25 );
+    var c = new Clause( [0,1,0], 25, 1 );
 	c.setPosition( 100,100 );
 	c.addToStage();
 	
-	c = new Clause([1,0,-1], 25);
+	c = new Clause([1,0,-1], 25, 1);
 	c.setPosition( 150,100 );
 	c.setRotation(30);
 	c.addToStage();
