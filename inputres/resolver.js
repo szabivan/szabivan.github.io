@@ -103,16 +103,20 @@ function init(){
 	createBorders();
 	
     var c = new Clause( [0,1,0], clauseSize / 2, 1 );
-	c.setPosition( Width + buttonSize/2 , Height + buttonSize/2 );
+	c.setPosition( buttonSize/2 , Height + buttonSize/2 );
 	c.addToStage();
 
     c = new Clause( [0,1,1,1,-1,-1], clauseSize / 2, 1 );
-	c.setPosition( Width + 3*buttonSize/2 , Height  + buttonSize/2 );
-	c.setActive( true );
+	c.setPosition( 3*buttonSize/2 , Height  + buttonSize/2 );
+	c.setActive( 1 );
 	c.addToStage();
 
     c = new Clause( [0,1,-1,1], clauseSize / 2, 1 );
-	c.setPosition( Width + buttonSize/2 , Height + 3*buttonSize/2 );
+	c.setPosition( buttonSize/2 , Height + 3*buttonSize/2 );
+	c.addToStage();
+
+    c = new Clause( [1,1,-1,1], clauseSize / 2, 0 );
+	c.setPosition( 3*buttonSize/2 , Height + 3*buttonSize/2 );
 	c.addToStage();
 
 	stage.update();
