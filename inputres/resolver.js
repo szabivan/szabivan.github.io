@@ -12,9 +12,9 @@ function getColor( i ){
 
 function getLiteral( color, polarity, radius, x, y ){
   var shape = new createjs.Shape();
-  shape.graphics.beginFill( color ).drawCircle( 0, 0, radius ).beginFill( "white" ).drawRoundRect( -radius*3/4, -radius*1/4, radius*3/2, radius*1/2, 3 );
-  if( polarity > 0 ){
-    shape.graphics.drawRoundRect(-radius*1/4,-radius*3/4, radius*1/2,radius*3/2,3);
+  shape.graphics.beginFill( color ).drawCircle( 0, 0, radius );//.beginFill( "white" ).drawRoundRect( -radius*3/4, -radius*1/4, radius*3/2, radius*1/2, 3 );
+  if( polarity < 0 ){
+    shape.graphics.beginFill( "white" ).drawCircle( 0, 0, radius*2/3 );
   }
   shape.x = x;
   shape.y = y;
@@ -47,8 +47,17 @@ function Clause( arr, radius ){
       for( var i = 0; i < this.size; i++ ){
 		  this.container.addChild( getLiteral( getColor(Math.abs(tmpArr[i])-1),tmpArr[i],r,(radius-r)*Math.sin(i*2*Math.PI/this.size),(radius-r)*Math.cos(i*2*Math.PI/this.size) ) );
 	  }	  
+	  break;	  
+	case 7:
+	  var r = radius / 3;
+	  this.container.addChild( getLiteral( getColor(Math.abs(tmpArr[0])-1),tmpArr[0],r,0,0 ) );	  
+      for( var i = 1; i < this.size; i++ ){
+		  this.container.addChild( getLiteral( getColor(Math.abs(tmpArr[i])-1),tmpArr[i],r,(radius-r)*Math.sin(i*Math.PI/3),(radius-r)*Math.cos(i*Math.PI/3) ) );
+	  }	  
+	  break;	  
+	default:
+	  alert("Call support, that many literals per clause are not supported yet");
 	  break;
-	
   }
 }
 Clause.prototype.addToStage = function(){
@@ -92,5 +101,9 @@ function init(){
 	c.setPosition( 200,150 );
 	c.addToStage();
 	
+    var c = new Clause( [1,1,-1,1,-1,-1,1], 25 );
+	c.setPosition( 100,200 );
+	c.addToStage();
+
 	stage.update();
 }
