@@ -102,34 +102,17 @@ function init(){
 	stage = new createjs.Stage("gameCanvas");
 	createBorders();
 	
-    var c = new Clause( [0,1,0], 25, 1 );
-	c.setPosition( 100,100 );
-	c.addToStage();
-	
-	c = new Clause([1,0,-1], 25, 1);
-	c.setPosition( 150,100 );
-	c.setRotation(30);
-	c.addToStage();
-	
-    var c = new Clause( [1,1,-1], 25, 1 );
-	c.setPosition( 200,100 );
+    var c = new Clause( [0,1,0], clauseSize / 2, 1 );
+	c.setPosition( Width + buttonSize/2 , Height + buttonSize/2 );
 	c.addToStage();
 
-    var c = new Clause( [1,-1,-1,1], 25, 1 );
-	c.setPosition( 100,150 );
-	c.setActive( 1 );
+    c = new Clause( [0,1,1,1,-1,-1], clauseSize / 2, 1 );
+	c.setPosition( Width + 3*buttonSize/2 , Height  + buttonSize/2 );
+	c.setActive( true );
 	c.addToStage();
 
-    var c = new Clause( [-1,1,-1,-1,1], 25 );
-	c.setPosition( 150,150 );
-	c.addToStage();
-
-    var c = new Clause( [1,1,-1,1,-1,-1], 25 );
-	c.setPosition( 200,150 );
-	c.addToStage();
-	
-    var c = new Clause( [1,1,-1,1,-1,-1,1], 25 );
-	c.setPosition( 100,200 );
+    c = new Clause( [0,1,-1,1], clauseSize / 2, 1 );
+	c.setPosition( Width + buttonSize/2 , Height + 3*buttonSize/2 );
 	c.addToStage();
 
 	stage.update();
